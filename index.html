@@ -6,8 +6,7 @@
 
 <script src="https://d3js.org/d3.v7.min.js"></script>
 
-<!-- تصدير -->
-<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1"></script>
+<!-- مكتبة PDF -->
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 <style>
@@ -15,48 +14,46 @@ body {
     margin: 0;
     font-family: "Cairo", Arial;
     direction: rtl;
-    text-align: center;
     background: linear-gradient(#e8f5e9, #c8e6c9);
+    text-align: center;
 }
 
-.controls {
-    background: white;
-    padding: 10px;
-    border-radius: 10px;
+h2 {
     margin: 10px;
 }
 
-button, input {
-    padding: 8px;
-    margin: 5px;
-    border-radius: 6px;
-    border: 1px solid #ccc;
+.note {
+    background: #fff3cd;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+.controls {
+    margin: 10px;
 }
 
 button {
+    padding: 8px;
+    margin: 5px;
+    border-radius: 6px;
+    border: none;
     background: #2e7d32;
     color: white;
-    border: none;
+    cursor: pointer;
 }
 
 svg {
     margin-top: 10px;
 }
 
-/* الفروع */
 .link {
     fill: none;
-    stroke: #6d4c41;
+    stroke: #5D4037;
     stroke-width: 4;
 }
 
-/* الجذع */
-.trunk {
-    stroke: #3e2723;
-    stroke-width: 10;
-}
-
-/* الأوراق */
 .leaf {
     fill: #43A047;
     stroke: #1B5E20;
@@ -75,55 +72,31 @@ svg {
 <h2>🌳 شجرة العشيرة</h2>
 
 <div class="controls">
-    <input id="searchName" placeholder="ابحث عن اسم">
-    <button onclick="searchPerson()">🔍 بحث</button>
-
-    <button onclick="exportImage()">📸 صورة</button>
-    <button onclick="exportPDF()">📄 PDF</button>
+    <button onclick="exportImage()">📸 تصدير صورة</button>
+    <button onclick="exportPDF()">📄 تصدير PDF</button>
 </div>
 
 <div class="note">
 🔒 التعديل يتم فقط من محمد باسم عبدالكريم
 </div>
 
-<svg width="1200" height="700"></svg>
+<svg width="1200" height="650"></svg>
 
 <script>
 
 // البيانات
 let data = {};
 
-// تحميل من GitHub
+// تحميل البيانات
 fetch("data.json")
     .then(res => res.json())
     .then(json => {
         data = json;
         drawTree();
+    })
+    .catch(() => {
+        alert("❌ تأكد من وجود ملف data.json");
     });
-
-// 🔍 البحث
-function searchPerson() {
-    let name = document.getElementById("searchName").value.trim();
-    let found = null;
-
-    function search(node) {
-        if (node.name.includes(name)) {
-            found = node;
-            return;
-        }
-        if (node.children) {
-            for (let c of node.children) {
-                search(c);
-                if (found) return;
-            }
-        }
-    }
-
-    search(data);
-
-    if (found) alert("✅ " + found.name);
-    else alert("❌ غير موجود");
-}
 
 // 🌳 رسم الشجرة
 function drawTree() {
@@ -132,31 +105,105 @@ function drawTree() {
 
     const root = d3.hierarchy(data);
 
-    const tree = d3.tree()
-        .size([1100, 600])
-        .separation((a, b) => 1.3);
+    const treeLayout = d3.tree()
+        .size([1100, 550])
+        .separation((a, b) => (a.parent == b.parent ? 1.2 : 1.6));
 
-    tree(root);
+    treeLayout(root);
 
-    const g = svg.append("g").attr("transform", "translate(50,50)");
+    const link = d3.linkVertical()
+        .x(d => d.x + 50)
+        .y(d => d.y + 50);
 
-    // الفروع
-    g.selectAll(".link")
+    svg.selectAll(".link")
         .data(root.links())
         .enter()
         .append("path")
-        .attr("class", d => d.source.depth === 0 ? "link trunk" : "link")
-        .attr("d", d3.linkVertical()
-            .x(d => d.x)
-            .y(d => d.y)
-        );
+        .attr("class", "link")
+        .attr("d", link);
 
-    // العقد
-    const node = g.selectAll(".node")
+    const nodes = svg.selectAll(".node")
         .data(root.descendants())
         .enter()
         .append("g")
-        .attr("transform", d => `translate(${d.x},${d.y})`);
+        .attr("transform", d => `translate(${d.x + 50},${d.y + 50})`);
+
+    nodes.append("ellipse")
+        .attr("class", "leaf")
+        .attr("rx", 32)
+        .attr("ry", 18);
+
+    nodes.append("text")
+        .text(d => d.data.name)
+        .attr("text-anchor", "middle")
+        .attr("dy", 4);
+}
+
+// 📸 تصدير صورة (مضمون)
+function exportImage() {
+    const svg = document.querySelector("svg");
+
+    const serializer = new XMLSerializer();
+    const svgStr = serializer.serializeToString(svg);
+
+    const img = new Image();
+    const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    img.onload = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = svg.clientWidth * 3;
+        canvas.height = svg.clientHeight * 3;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        URL.revokeObjectURL(url);
+
+        const link = document.createElement("a");
+        link.download = "tree.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+    };
+
+    img.src = url;
+}
+
+// 📄 تصدير PDF (مضمون)
+function exportPDF() {
+    const svg = document.querySelector("svg");
+
+    const serializer = new XMLSerializer();
+    const svgStr = serializer.serializeToString(svg);
+
+    const img = new Image();
+    const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+
+    img.onload = function () {
+        const canvas = document.createElement("canvas");
+        canvas.width = svg.clientWidth * 3;
+        canvas.height = svg.clientHeight * 3;
+
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        URL.revokeObjectURL(url);
+
+        const imgData = canvas.toDataURL("image/png");
+
+        const pdf = new jspdf.jsPDF("landscape");
+        pdf.addImage(imgData, "PNG", 10, 10, 280, 150);
+        pdf.save("tree.pdf");
+    };
+
+    img.src = url;
+}
+
+</script>
+
+</body>
+</html>        .attr("transform", d => `translate(${d.x},${d.y})`);
 
     // شكل الورقة
     node.append("ellipse")
