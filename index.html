@@ -6,7 +6,8 @@
 
 <script src="https://d3js.org/d3.v7.min.js"></script>
 
-<!-- مكتبة PDF -->
+<!-- مكتبات التصدير -->
+<script src="https://cdn.jsdelivr.net/npm/canvg@4.0.1/lib/umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
 
 <style>
@@ -18,9 +19,7 @@ body {
     text-align: center;
 }
 
-h2 {
-    margin: 10px;
-}
+h2 { margin: 10px; }
 
 .note {
     background: #fff3cd;
@@ -30,9 +29,7 @@ h2 {
     display: inline-block;
 }
 
-.controls {
-    margin: 10px;
-}
+.controls { margin: 10px; }
 
 button {
     padding: 8px;
@@ -44,9 +41,7 @@ button {
     cursor: pointer;
 }
 
-svg {
-    margin-top: 10px;
-}
+svg { margin-top: 10px; }
 
 .link {
     fill: none;
@@ -78,28 +73,22 @@ svg {
 
 <div class="note">
 🔒 التعديل يتم فقط من محمد باسم عبدالكريم
-    للتواصل 7833067094
 </div>
 
 <svg width="1200" height="650"></svg>
 
 <script>
 
-// البيانات
 let data = {};
 
-// تحميل البيانات
 fetch("data.json")
-    .then(res => res.json())
-    .then(json => {
-        data = json;
-        drawTree();
-    })
-    .catch(() => {
-        alert("❌ تأكد من وجود ملف data.json");
-    });
+.then(res => res.json())
+.then(json => {
+    data = json;
+    drawTree();
+});
 
-// 🌳 رسم الشجرة
+// رسم الشجرة
 function drawTree() {
     const svg = d3.select("svg");
     svg.selectAll("*").remove();
@@ -140,169 +129,68 @@ function drawTree() {
         .attr("dy", 4);
 }
 
-// 📸 تصدير صورة (محسّن)
-function exportImage() {
+//////////////////////////////////////////////////
+// 📸 تصدير صورة + علامة مائية
+//////////////////////////////////////////////////
+
+async function exportImage() {
     const svg = document.querySelector("svg");
 
-    const serializer = new XMLSerializer();
-    let source = serializer.serializeToString(svg);
+    const canvas = document.createElement("canvas");
+    canvas.width = svg.clientWidth * 3;
+    canvas.height = svg.clientHeight * 3;
 
-    if(!source.match(/^<svg[^>]+xmlns="http:\/\/www.w3.org\/2000\/svg"/)){
-        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
-    }
-
-    source = source.replace('<svg', '<svg style="background:white"');
-
-    const img = new Image();
-    const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
-
-    img.onload = function() {
-        const canvas = document.createElement("canvas");
-        canvas.width = svg.clientWidth * 2;
-        canvas.height = svg.clientHeight * 2;
-
-        const ctx = canvas.getContext("2d");
-
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        const link = document.createElement("a");
-        link.download = "tree.png";
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-    };
-
-    img.src = url;
-}
-
-// 📄 تصدير PDF (محسّن)
-function exportPDF() {
-    const svg = document.querySelector("svg");
+    const ctx = canvas.getContext("2d");
 
     const serializer = new XMLSerializer();
-    let source = serializer.serializeToString(svg);
+    const svgString = serializer.serializeToString(svg);
 
-    if(!source.match(/^<svg[^>]+xmlns="http:\/\/www.w3.org\/2000\/svg"/)){
-        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
-    }
+    const v = await canvg.Canvg.fromString(ctx, svgString);
+    await v.render();
 
-    source = source.replace('<svg', '<svg style="background:white"');
+    // ✍️ علامة مائية
+    ctx.font = "30px Arial";
+    ctx.fillStyle = "rgba(0,0,0,0.4)";
+    ctx.textAlign = "center";
+    ctx.fillText("تم بواسطة محمد باسم عبدالكريم", canvas.width / 2, canvas.height - 30);
 
-    const img = new Image();
-    const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
-
-    img.onload = function() {
-        const canvas = document.createElement("canvas");
-        canvas.width = svg.clientWidth * 2;
-        canvas.height = svg.clientHeight * 2;
-
-        const ctx = canvas.getContext("2d");
-
-        ctx.fillStyle = "#ffffff";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        const imgData = canvas.toDataURL("image/png");
-
-        const pdf = new jspdf.jsPDF("landscape");
-        pdf.addImage(imgData, "PNG", 10, 10, 280, 150);
-        pdf.save("tree.pdf");
-    };
-
-    img.src = url;
+    const link = document.createElement("a");
+    link.download = "tree.png";
+    link.href = canvas.toDataURL("image/png");
+    link.click();
 }
 
-</script>
+//////////////////////////////////////////////////
+// 📄 تصدير PDF + علامة مائية
+//////////////////////////////////////////////////
 
-</body>
-</html>        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        URL.revokeObjectURL(url);
-
-        const link = document.createElement("a");
-        link.download = "tree.png";
-        link.href = canvas.toDataURL("image/png");
-        link.click();
-    };
-
-    img.src = url;
-}
-
-// 📄 تصدير PDF (مضمون)
-function exportPDF() {
-    const svg = document.querySelector("svg");
-
-    const serializer = new XMLSerializer();
-    const svgStr = serializer.serializeToString(svg);
-
-    const img = new Image();
-    const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
-
-    img.onload = function () {
-        const canvas = document.createElement("canvas");
-        canvas.width = svg.clientWidth * 3;
-        canvas.height = svg.clientHeight * 3;
-
-        const ctx = canvas.getContext("2d");
-        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-
-        URL.revokeObjectURL(url);
-
-        const imgData = canvas.toDataURL("image/png");
-
-        const pdf = new jspdf.jsPDF("landscape");
-        pdf.addImage(imgData, "PNG", 10, 10, 280, 150);
-        pdf.save("tree.pdf");
-    };
-
-    img.src = url;
-}
-
-</script>
-
-</body>
-</html>        .attr("transform", d => `translate(${d.x},${d.y})`);
-
-    // شكل الورقة
-    node.append("ellipse")
-        .attr("class", "leaf")
-        .attr("rx", d => d.depth === 0 ? 30 : 18)
-        .attr("ry", d => d.depth === 0 ? 25 : 12)
-        .attr("fill", d => d.depth === 0 ? "#8d6e63" : "#43A047");
-
-    node.append("text")
-        .text(d => d.data.name)
-        .attr("text-anchor", "middle")
-        .attr("dy", 4);
-}
-
-// 📸 تصدير صورة
-function exportImage() {
-    html2canvas(document.querySelector("svg"), { scale: 5 })
-    .then(canvas => {
-        let link = document.createElement("a");
-        link.download = "tree.png";
-        link.href = canvas.toDataURL();
-        link.click();
-    });
-}
-
-// 📄 تصدير PDF
 async function exportPDF() {
+    const svg = document.querySelector("svg");
+
+    const canvas = document.createElement("canvas");
+    canvas.width = svg.clientWidth * 3;
+    canvas.height = svg.clientHeight * 3;
+
+    const ctx = canvas.getContext("2d");
+
+    const serializer = new XMLSerializer();
+    const svgString = serializer.serializeToString(svg);
+
+    const v = await canvg.Canvg.fromString(ctx, svgString);
+    await v.render();
+
+    // ✍️ علامة مائية
+    ctx.font = "30px Arial";
+    ctx.fillStyle = "rgba(0,0,0,0.4)";
+    ctx.textAlign = "center";
+    ctx.fillText("تم بواسطة محمد باسم عبدالكريم", canvas.width / 2, canvas.height - 30);
+
+    const imgData = canvas.toDataURL("image/png");
+
     const { jsPDF } = window.jspdf;
-
-    const canvas = await html2canvas(document.querySelector("svg"), {
-        scale: 4
-    });
-
-    const img = canvas.toDataURL("image/png");
-
     const pdf = new jsPDF("landscape");
-    pdf.addImage(img, "PNG", 10, 10, 280, 150);
+
+    pdf.addImage(imgData, "PNG", 10, 10, 280, 150);
     pdf.save("tree.pdf");
 }
 
