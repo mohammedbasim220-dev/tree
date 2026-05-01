@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>شجرة العشيرة الاحترافية</title>
+
+<script src="https://d3js.org/d3.v7.min.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: "Cairo", Arial;
+    direction: rtl;
+    background: linear-gradient(#e8f5e9, #c8e6c9);
+    text-align: center;
+}
+
+h2 {
+    margin: 10px;
+}
+
+.note {
+    background: #fff3cd;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 8px;
+    display: inline-block;
+}
+
+svg {
+    margin-top: 10px;
+}
+
+.link {
+    fill: none;
+    stroke: #5D4037;
+    stroke-width: 4;
+}
+
+.leaf {
+    fill: #43A047;
+    stroke: #1B5E20;
+    stroke-width: 2;
+}
+
+.node text {
+    fill: white;
+    font-size: 11px;
+}
+</style>
+</head>
+
+<body>
+
+<h2>🌳 شجرة العشيرة</h2>
+
+<div class="note">
+🔒 التعديل يتم فقط من GitHub
+</div>
+
+<svg width="1200" height="650"></svg>
+
+<script>
+
+// البيانات
+let data = {};
+
+// تحميل البيانات من GitHub (ملف data.json)
+fetch("data.json")
+    .then(res => res.json())
+    .then(json => {
+        data = json;
+        drawTree();
+    })
+    .catch(() => {
+        alert("❌ تأكد من وجود ملف data.json");
+    });
+
+// رسم الشجرة
+function drawTree() {
+    const svg = d3.select("svg");
+    svg.selectAll("*").remove();
+
+    const root = d3.hierarchy(data);
+
+    const treeLayout = d3.tree()
+        .size([1100, 550])
+        .separation((a, b) => (a.parent == b.parent ? 1.2 : 1.6));
+
+    treeLayout(root);
+
+    const link = d3.linkVertical()
+        .x(d => d.x + 50)
+        .y(d => d.y + 50);
+
+    svg.selectAll(".link")
+        .data(root.links())
+        .enter()
+        .append("path")
+        .attr("class", "link")
+        .attr("d", link);
+
+    const nodes = svg.selectAll(".node")
+        .data(root.descendants())
+        .enter()
+        .append("g")
+        .attr("transform", d => `translate(${d.x + 50},${d.y + 50})`);
+
+    nodes.append("ellipse")
+        .attr("class", "leaf")
+        .attr("rx", 32)
+        .attr("ry", 18);
+
+    nodes.append("text")
+        .text(d => d.data.name)
+        .attr("text-anchor", "middle")
+        .attr("dy", 4);
+}
+
+</script>
+
+</body>
+</html>
