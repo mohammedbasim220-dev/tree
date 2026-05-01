@@ -12,7 +12,7 @@
 <style>
 body {
     margin: 0;
-    font-family: "Cairo", Arial;
+    font-family: Arial;
     direction: rtl;
     background: linear-gradient(#e8f5e9, #c8e6c9);
     text-align: center;
@@ -78,6 +78,7 @@ svg {
 
 <div class="note">
 🔒 التعديل يتم فقط من محمد باسم عبدالكريم
+    للتواصل 7833067094
 </div>
 
 <svg width="1200" height="650"></svg>
@@ -139,24 +140,85 @@ function drawTree() {
         .attr("dy", 4);
 }
 
-// 📸 تصدير صورة (مضمون)
+// 📸 تصدير صورة (محسّن)
 function exportImage() {
     const svg = document.querySelector("svg");
 
     const serializer = new XMLSerializer();
-    const svgStr = serializer.serializeToString(svg);
+    let source = serializer.serializeToString(svg);
+
+    if(!source.match(/^<svg[^>]+xmlns="http:\/\/www.w3.org\/2000\/svg"/)){
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+
+    source = source.replace('<svg', '<svg style="background:white"');
 
     const img = new Image();
-    const blob = new Blob([svgStr], { type: "image/svg+xml;charset=utf-8" });
-    const url = URL.createObjectURL(blob);
+    const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
 
-    img.onload = function () {
+    img.onload = function() {
         const canvas = document.createElement("canvas");
-        canvas.width = svg.clientWidth * 3;
-        canvas.height = svg.clientHeight * 3;
+        canvas.width = svg.clientWidth * 2;
+        canvas.height = svg.clientHeight * 2;
 
         const ctx = canvas.getContext("2d");
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        const link = document.createElement("a");
+        link.download = "tree.png";
+        link.href = canvas.toDataURL("image/png");
+        link.click();
+    };
+
+    img.src = url;
+}
+
+// 📄 تصدير PDF (محسّن)
+function exportPDF() {
+    const svg = document.querySelector("svg");
+
+    const serializer = new XMLSerializer();
+    let source = serializer.serializeToString(svg);
+
+    if(!source.match(/^<svg[^>]+xmlns="http:\/\/www.w3.org\/2000\/svg"/)){
+        source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+    }
+
+    source = source.replace('<svg', '<svg style="background:white"');
+
+    const img = new Image();
+    const url = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(source);
+
+    img.onload = function() {
+        const canvas = document.createElement("canvas");
+        canvas.width = svg.clientWidth * 2;
+        canvas.height = svg.clientHeight * 2;
+
+        const ctx = canvas.getContext("2d");
+
+        ctx.fillStyle = "#ffffff";
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+
+        const imgData = canvas.toDataURL("image/png");
+
+        const pdf = new jspdf.jsPDF("landscape");
+        pdf.addImage(imgData, "PNG", 10, 10, 280, 150);
+        pdf.save("tree.pdf");
+    };
+
+    img.src = url;
+}
+
+</script>
+
+</body>
+</html>        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
         URL.revokeObjectURL(url);
 
